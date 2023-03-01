@@ -1,0 +1,4 @@
+*.txt
+chats/
+client
+server
