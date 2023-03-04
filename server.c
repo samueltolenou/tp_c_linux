@@ -49,52 +49,52 @@ struct AcceptedSocket acceptedSockets[10];
  * @return
  * @author nfassinou
  */
-struct AcceptedSocket *accept_connection(int);
+struct AcceptedSocket *accepter_un_connexion(int);
 
 /**
  * Listener for accepting incoming connections
  * @param socketFd
  * @author Groupe 7
  */
-void accepting_incoming_connections(int);
+void accepter_connections_entrantes(int);
 
 /**
  * Process incoming data for a particular client socket
  * @param acceptedSocket
  * @author Groupe 7
  */
-void process_incoming_data(struct AcceptedSocket *);
+void dialoguer_avec_un_client(struct AcceptedSocket *);
 
 /**
  * Process user registration
  * @param _socket &nbsp;Client socket file descriptor
  * @author Groupe 7
  */
-void process_user_registration(int);
+void traitement_creation_compte(int);
 
 /**
  * Listing des comptes utilisateurs créés
  * @author Groupe 7
  */
-void process_user_listing(int);
+void traitement_liste_des_comptes(int);
 
 /**
  * Processus d'envoi de messages a des utilisateurs
  * @author Groupe 7
  */
-void process_send_message(int);
+void traitement_envoi_des_messages(int);
 
 /**
  * Chat instantané avec un utilisateur
  * @author Groupe 7
  */
-void process_chat_with_user(int);
+void traitement_discussion_instantanee(int);
 
 /**
  * Create a folder to store all chats for every user connected
  * @author Groupe 7
  */
-void create_chat_folder(char *);
+void creation_dossier(char *);
 
 /**
  * Util function for char replacement
@@ -128,7 +128,7 @@ char *get_dir(int);
  * Listing des sockets actives
  * @author Groupe 7
  */
-void list_socket();
+void lister_les_sockets();
 
 /**
  * Util function to convert a char* to an Integer
@@ -140,7 +140,7 @@ int str_to_int(char *);
 /**
  * Création d'un compte utilisateur avec persistence des données dans un fichier
  */
-void save_user_account(int, char *);
+void sauver_donnees_utilisateur(int, char *);
 
 /**
  *
@@ -148,33 +148,33 @@ void save_user_account(int, char *);
  * @return
  * @author Groupe 7
  */
-bool user_exist(char *);
+bool verifier_existence_utilisateur(char *);
 
 /**
  * Util function to generate a new User ID based on file stored on server side
  * @return
  * @author Groupe 7
  */
-int generate_user_id();
+int generation_id_utilisateur();
 
 /**
  * Sauver les messages offline dans le fichier UNREAD.TXT de l'utilisateur destinataire
  * @author Groupe 7
  */
-void persist_message(char *, char *, char *);
+void sauver_messages_envoyes(char *, char *, char *);
 
 /**
  * Lire le login de l'utilisateur a partir de son ID
  * @return
  * @author Groupe 7
  */
-char *get_user_login(char *);
+char *recuperer_login_utilisateur(char *);
 
-bool exit_client(int);
+bool verifier_socket_client(int);
 
-void process_read_user_message(int);
+void traitement_lecture_messages(int);
 
-void process_user_authentication(int);
+void traitement_authentification(int);
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -217,62 +217,63 @@ int main(int argc, char *argv[]) {
 
     listen(serverSocket, 3);
     puts("Waiting for incoming connections...");
-    create_chat_folder(CHAT_FOLDER);
-    accepting_incoming_connections(serverSocket);
+
+    creation_dossier(CHAT_FOLDER);
+    accepter_connections_entrantes(serverSocket);
     shutdown(serverSocket, SHUT_RDWR);
     exit(EXIT_SUCCESS);
 }
 
-void create_chat_folder(char *dir) {
+void creation_dossier(char *dir) {
     if (stat(dir, &st) == -1) {
         mkdir(dir, 0777);
     }
 }
 
-void accepting_incoming_connections(int socketFd) {
+void accepter_connections_entrantes(int socketFd) {
     while (true) {
-        struct AcceptedSocket *clientSocket = accept_connection(socketFd);
+        struct AcceptedSocket *clientSocket = accepter_un_connexion(socketFd);
         if (clientSocket == NULL) continue;
         acceptedSockets[acceptedSocketsCount++] = *clientSocket;
-        //list_socket();
+        //lister_les_sockets();
         if (fork()) {
             close(socketFd);
-            process_incoming_data(clientSocket);
+            dialoguer_avec_un_client(clientSocket);
         }
     }
 }
 
-void process_incoming_data(struct AcceptedSocket *acceptedSocket) {
+void dialoguer_avec_un_client(struct AcceptedSocket *acceptedSocket) {
     bool looop = true;
     while (looop) {
         ssize_t count = recv(acceptedSocket->socket_fd, response, 1024, 0);
         response[count] = 0;
         if (strcmp(response, "ins") == 0)
-            process_user_registration(acceptedSocket->socket_fd);
+            traitement_creation_compte(acceptedSocket->socket_fd);
 
         if (strcmp(response, "auth") == 0)
-            process_user_authentication(acceptedSocket->socket_fd);
+            traitement_authentification(acceptedSocket->socket_fd);
 
         if (strcmp(response, "send") == 0)
-            process_send_message(acceptedSocket->socket_fd);
+            traitement_envoi_des_messages(acceptedSocket->socket_fd);
 
         if (strcmp(response, "lst") == 0)
-            process_user_listing(acceptedSocket->socket_fd);
+            traitement_liste_des_comptes(acceptedSocket->socket_fd);
 
         if (strcmp(response, "chat") == 0)
-            process_chat_with_user(acceptedSocket->socket_fd);
+            traitement_discussion_instantanee(acceptedSocket->socket_fd);
 
         if (strcmp(response, "read") == 0)
-            process_read_user_message(acceptedSocket->socket_fd);
+            traitement_lecture_messages(acceptedSocket->socket_fd);
 
         if (strcmp(response, "exit") == 0)
-            looop = exit_client(acceptedSocket->socket_fd);
+            looop = verifier_socket_client(acceptedSocket->socket_fd);
 
     }
     close(acceptedSocket->socket_fd);
 }
 
-struct AcceptedSocket *accept_connection(int socketDesc) {
+struct AcceptedSocket *accepter_un_connexion(int socketDesc) {
     struct sockaddr_in client_addr;
     int length = sizeof(struct sockaddr_in);
     int client_socket = accept(socketDesc, &client_addr, &length);
@@ -287,6 +288,7 @@ struct AcceptedSocket *accept_connection(int socketDesc) {
     if (!acceptedSocket->accepted)
         acceptedSocket->error = client_socket;
 
+    // formattage de l'affichage des données de connexion
     sprintf(buffer, "Client #%d from %s:%d", client_socket, inet_ntoa(acceptedSocket->address.sin_addr),
             ntohs(acceptedSocket->address.sin_port));
     puts(buffer);
@@ -294,7 +296,7 @@ struct AcceptedSocket *accept_connection(int socketDesc) {
 }
 
 // Gestion des options choisies par l'utilisateur (dialogue)
-void process_user_authentication(int _socket) {
+void traitement_authentification(int _socket) {
     FILE *fd;
     strcpy(buffer, "Entrez votre ID : ");
     send(_socket, buffer, strlen(buffer), 0);
@@ -310,7 +312,7 @@ void process_user_authentication(int _socket) {
         return;
     }
     // Mise a jour de la socket client
-    char *login = get_user_login(response);
+    char *login = recuperer_login_utilisateur(response);
     struct User *user = malloc(sizeof(struct User));
     user->id = user_id;
     user->login = login;
@@ -323,10 +325,10 @@ void process_user_authentication(int _socket) {
     strcpy(buffer, "okay");
     fclose(fd);
     send(_socket, buffer, strlen(buffer), 0);
-    list_socket();
+    lister_les_sockets();
 }
 
-void process_read_user_message(int _socket) {
+void traitement_lecture_messages(int _socket) {
     FILE *fd = NULL;
     strcpy(buffer, "Entrez votre ID : ");
     send(_socket, buffer, strlen(buffer), 0);
@@ -340,27 +342,27 @@ void process_read_user_message(int _socket) {
     puts(file);
 }
 
-void process_user_registration(int _socket) {
+void traitement_creation_compte(int _socket) {
     char *login = NULL;
     strcpy(buffer, "Entrez votre pseudo : ");
     send(_socket, buffer, strlen(buffer), 0);
     long cnt = recv(_socket, response, MAX_LENGTH, 0);
     response[cnt] = 0;
     login = trim_white_space(response);
-    int user_id = generate_user_id();
-    /*if (user_exist(login)) {
+    int user_id = generation_id_utilisateur();
+    /*if (verifier_existence_utilisateur(login)) {
         sprintf(buffer, "User <%s> already exists.", login);
         send(_socket, buffer, strlen(buffer), 0);
         return;
     }*/
     sprintf(buffer, "Bienvenue dans le chat, %s (ID : %d)", login, user_id);
     send(_socket, buffer, strlen(buffer), 0);
-    create_chat_folder(get_dir(user_id));
-    save_user_account(user_id, login);
+    creation_dossier(get_dir(user_id));
+    sauver_donnees_utilisateur(user_id, login);
 }
 
-void process_send_message(int _socket) {
-    process_user_listing(_socket);
+void traitement_envoi_des_messages(int _socket) {
+    traitement_liste_des_comptes(_socket);
     ssize_t cnt;
     int pos = 0;
     char *token;
@@ -381,13 +383,13 @@ void process_send_message(int _socket) {
             strcpy(tab[pos], token);
         }
         if (pos < 2) continue;
-        persist_message(tab[0], tab[1], tab[2]);
+        sauver_messages_envoyes(tab[0], tab[1], tab[2]);
     }
     sprintf(buffer, "Appuyez pour continuer...");
     send(_socket, buffer, strlen(buffer), 0);
 }
 
-void process_user_listing(int _socket) {
+void traitement_liste_des_comptes(int _socket) {
     FILE *textfile;
     strcpy(line, "");
     textfile = fopen(USER_FILE, "r");
@@ -402,7 +404,7 @@ void process_user_listing(int _socket) {
     send(_socket, buffer, strlen(buffer), 0);
 }
 
-void process_chat_with_user(int _socket) {
+void traitement_discussion_instantanee(int _socket) {
     FILE *fd = NULL;
     int last_id = 0;
     strcpy(buffer, "Entrez votre ID : ");
@@ -467,7 +469,7 @@ void process_chat_with_user(int _socket) {
     }
 }
 
-bool exit_client(int _socket) {
+bool verifier_socket_client(int _socket) {
     sprintf(buffer, "Client #%d has gone 👋!", _socket);
     for (int i = 0; i < acceptedSocketsCount; i++) {
         int curr_socket = acceptedSockets[i].socket_fd;
@@ -475,16 +477,16 @@ bool exit_client(int _socket) {
             acceptedSockets[i] = *invalidSocket;
         }
     }
-    list_socket();
+    lister_les_sockets();
     puts(buffer);
     return false;
 }
 
 // fonctions utilitaires
-void persist_message(char *sender, char *receiver, char *message) {
+void sauver_messages_envoyes(char *sender, char *receiver, char *message) {
     char *filename;
     FILE *fd = NULL;
-    char *login = get_user_login(sender);
+    char *login = recuperer_login_utilisateur(sender);
     char *folder = get_dir(atoi(receiver));
     asprintf(&filename, "%s/%s", folder, UNREAD_MSG);
     fd = fopen(filename, "a+");
@@ -538,7 +540,7 @@ char *get_date_time() {
     return stm;
 }
 
-void list_socket() {
+void lister_les_sockets() {
     int n = 0;
     struct User *user = malloc(sizeof(struct User));
     strcpy(buffer, "********************\n");
@@ -570,7 +572,7 @@ int str_to_int(char *str) {
 }
 
 // fonctions de gestion User
-int generate_user_id() {
+int generation_id_utilisateur() {
     int id = 1000; // depart
     FILE *fd = NULL;
     fd = fopen(ID_FILE, "r");
@@ -585,7 +587,7 @@ int generate_user_id() {
     return id;
 }
 
-char *get_user_login(char *id) {
+char *recuperer_login_utilisateur(char *id) {
     FILE *fd = NULL;
     strcpy(line, "");
     char *file = get_dir(atoi(id));
@@ -596,7 +598,7 @@ char *get_user_login(char *id) {
     return line;
 }
 
-void save_user_account(int id, char *user) {
+void sauver_donnees_utilisateur(int id, char *user) {
     char *f;
     FILE *fd = NULL;
     fd = fopen(USER_FILE, "a+");
@@ -611,7 +613,7 @@ void save_user_account(int id, char *user) {
     fclose(fd);
 }
 
-bool user_exist(char *user) {
+bool verifier_existence_utilisateur(char *user) {
     FILE *fp;
     char ch;
     char word[50];

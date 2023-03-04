@@ -9,24 +9,24 @@
 #include <errno.h>
 
 #define MAX_LENGTH 1024
-#define INSC 105
-#define SEND 115
-#define READ 114
-#define QUIT 113
-#define CHAT 99
-#define LST 108
-#define AUTH 97
-#define LOGOUT 100
+#define INSC 105        // i
+#define SEND 115        // s
+#define READ 114        // r
+#define QUIT 113        // q
+#define CHAT 99         // c
+#define LST 108         // l
+#define AUTH 97         // a
+#define LOGOUT 100      // d
 
 int port;
 int quit = 0;
-char *ip = "";
+char *ip = "127.0.0.1";
 char *p = NULL;
 int clientSocket;
 char *input = NULL;
 size_t inputSize = 0;
 char message[MAX_LENGTH];
-static const int OPTION_VALUES[] = {
+static const int OPTIONS_VALIDES[] = {
         INSC, AUTH, LST, CHAT,
         SEND, READ, QUIT, LOGOUT
 };
@@ -39,18 +39,18 @@ char *user_id = NULL;
  * en fonction effectuées.
  * @return
  */
-int display_menu_option();
+int afficher_options_menu();
 
 /**
  * Exit de l'application
  */
-void exit_chat();
+void quitter_application();
 
 /**
  * Module de creation des comptes utilisateurs
  * Le key code a envoyer au serveur est 'ins'
  */
-void register_user();
+void creation_de_compte_utilisateur();
 
 /**
  * Module d'envoi des messages on offline
@@ -58,7 +58,7 @@ void register_user();
  * Les messages seront stockés dans le fichier unread.txt de l'utilisateur
  * Le key code a envoyer au serveur est 'send'
  */
-void send_message();
+void envoyer_messages_hors_ligne();
 
 /**
  * Module de chat instantané avec un utilisateur que le client
@@ -66,37 +66,70 @@ void send_message();
  * est en ligne
  * Le key code a envoyer au serveur est 'chat'
  */
-void chat_with_friend();
+void discuter_avec_un_ami();
 
 /**
  * Code du bloc d'affichage de la liste des utilisateurs ayant créé
  * un compte sur le reseau
  * Le key code a envoyer au serveur est 'lst'
  */
-void show_user_list();
+void afficher_liste_utilisateur();
 
 /**
  * Module d'authentification Utilisateur
  */
-void user_authentication();
+void authentification_utilisateur();
 
-void waiting();
+/**
+ * Mettre en attente l'application jusqu'a l'appui d'une touche
+ */
+void appuyer_touche_pour_continuer();
 
-ssize_t read_stdin(const char *);
+/**
+ * Lire des données entrées au client et les stocker dans la variable
+ * globale *input pour utisation utltérieure
+ * Prends en parametre une chaine de caractères a afficher en prompt pour la saisie
+ * @return
+ */
+ssize_t lire_une_ligne(const char *);
 
+/**
+ * Afficher un message de succès
+ * Prends en parametre une chaine de caractères a afficher
+ */
 void okay(const char *);
 
+/**
+ * Afficher un message d'erreur
+ * Prends en parametre une chaine de caractères à afficher
+ */
 void error(const char *);
 
 /**
  * Module exécuté le thread principal du client
  */
-void main_thread();
+void traitement_prinicpal();
 
-void read_offline_message();
+/**
+ * Module de lecture des messages envoyés d'autres amis lorsque le
+ * demandeur (utilisateur courant) n'est pas connecté
+ */
+void lire_messages_hors_ligne();
 
-bool is_option_valide(int);
+/**
+ * Module de vérification de la validité de l'option de menu
+ * choisie par l'utilisateur
+ * Prends en parametre un entier représantant le choix utilisateur
+ * @return
+ */
+bool verifier_choix_valide(int);
 
+/**
+ * Entrée prinicpale de l'application Client
+ * @param argc Nombre d'arguments en ligne de ommande
+ * @param argv Tableau des arguments saisis en ligne de commande
+ * @return
+ */
 int main(int argc, char *argv[]) {
     char *str_port;
     switch (argc) {
@@ -145,32 +178,32 @@ int main(int argc, char *argv[]) {
     okay("Client connected successfully");
     isConnected = false;
     while (true) {
-        main_thread();
+        traitement_prinicpal();
         if (quit == 1) break;
     }
-    exit_chat();
+    quitter_application();
 }
 
-void main_thread() {
-    int option = display_menu_option();
+void traitement_prinicpal() {
+    int option = afficher_options_menu();
     switch (option) {
         case INSC:
-            register_user();
+            creation_de_compte_utilisateur();
             break;
         case AUTH:
-            user_authentication();
+            authentification_utilisateur();
             break;
         case CHAT:
-            chat_with_friend();
+            discuter_avec_un_ami();
             break;
         case SEND:
-            send_message();
+            envoyer_messages_hors_ligne();
             break;
         case LST:
-            show_user_list();
+            afficher_liste_utilisateur();
             break;
         case READ:
-            read_offline_message();
+            lire_messages_hors_ligne();
             break;
         case LOGOUT:
             isConnected = false;
@@ -183,37 +216,37 @@ void main_thread() {
     }
 }
 
-int display_menu_option() {
+int afficher_options_menu() {
     int ch;
     while (true) {
         // present the menu, accept the user's choice
         printf("\n\nMenu des options :");
-        if(isConnected) {
+        if(isConnected) { // authentifiée
             printf("\n    S/s) Envoyer un message a un ami.");
             printf("\n    C/c) Discuter avec un ami...");
             printf("\n    R/r) Lire mes messages.");
             printf("\n    L/l) Liste des comptes.");
             printf("\n    D/d) Déconnexion (Logout).");
-        } else {
+        } else { // non authentifée
             printf("\n    I/i) Créer un nouveau compte (Inscription).");
             printf("\n    A/a) Authentification (Login).");
         }
         printf("\n    Q/q) Quitter le menu.");
-        read_stdin("\n\nEntrer votre choix : ");
+        lire_une_ligne("\n\nEntrer votre choix : ");
         ch = tolower(*input);
         //printf("%d", ch);
-        if(!is_option_valide(ch)) continue;
+        if(!verifier_choix_valide(ch)) continue;
         break;
     }
     return ch;
 }
 
-void register_user() {
+void creation_de_compte_utilisateur() {
     sprintf(message, "ins");
     send(clientSocket, message, strlen(message), 0);
     long count = recv(clientSocket, message, MAX_LENGTH, 0);
     message[count] = 0;
-    read_stdin(message);
+    lire_une_ligne(message);
     sprintf(message, "%s", input);
     send(clientSocket, input, strlen(input), 0);
     count = recv(clientSocket, message, MAX_LENGTH, 0);
@@ -222,7 +255,7 @@ void register_user() {
     puts("Inscription terminée.");
 }
 
-void user_authentication() {
+void authentification_utilisateur() {
     sprintf(message, "auth");
     // envoi de la requete d'authentification
     send(clientSocket, message, strlen(message), 0);
@@ -233,7 +266,7 @@ void user_authentication() {
     size_t ss = 0;
     count = getline(&user_id, &ss, stdin);
     user_id[count - 1] = 0;
-    //read_stdin(message);
+    //lire_une_ligne(message);
 
     // Send USer ID for checking
     send(clientSocket, user_id, strlen(user_id), 0);
@@ -248,10 +281,10 @@ void user_authentication() {
         //puts(user_id);
     }
     puts(message);
-    waiting();
+    appuyer_touche_pour_continuer();
 }
 
-void show_user_list() {
+void afficher_liste_utilisateur() {
     sprintf(message, "lst");
     send(clientSocket, message, strlen(message), 0);
     long count = recv(clientSocket, message, MAX_LENGTH, 0);
@@ -261,7 +294,7 @@ void show_user_list() {
     getchar();
 }
 
-void read_offline_message() {
+void lire_messages_hors_ligne() {
     sprintf(message, "read");
     send(clientSocket, message, strlen(message), 0);
     long count = recv(clientSocket, message, MAX_LENGTH, 0);
@@ -272,10 +305,10 @@ void read_offline_message() {
     count = recv(clientSocket, message, MAX_LENGTH, 0);
     message[count] = 0;
     puts(message);
-    waiting();
+    appuyer_touche_pour_continuer();
 }
 
-void chat_with_friend() {
+void discuter_avec_un_ami() {
     sprintf(message, "chat");
     send(clientSocket, message, strlen(message), 0);
     // prompt received
@@ -297,39 +330,36 @@ void chat_with_friend() {
     }
     // prompt for entering friend id
     puts(message);
-    read_stdin("Entrez l'ID de votre ami : ");
+    lire_une_ligne("Entrez l'ID de votre ami : ");
     sprintf(message, "%s", input);
     send(clientSocket, message, strlen(message), 0);
     recv(clientSocket, message, MAX_LENGTH, 0);
     puts(message);
     bool chating = true;
     while (chating) {
-        read_stdin("$@ > ");
+        lire_une_ligne("$@ > ");
         chating = strcmp(input, "end") != 0;
         send(clientSocket, input, strlen(input), 0);
     }
 }
 
-void send_message() {
-    char sender[10] = "";
+void envoyer_messages_hors_ligne() {
     char receiver[10] = "";
     sprintf(message, "send");
     send(clientSocket, message, strlen(message), 0);
     long count = recv(clientSocket, message, MAX_LENGTH, 0);
     message[count] = 0;
     puts(message);
-    read_stdin("Votre ID : ");
-    sprintf(sender, "%s", input);
-    read_stdin("Son ID : ");
+    lire_une_ligne("ID ami: ");
     sprintf(receiver, "%s", input);
     puts("Taper 'end' pour arreter");
     while (true) {
-        read_stdin("$@ > ");
+        lire_une_ligne("$@ > ");
         if (strcmp(input, "end") == 0) {
             send(clientSocket, "end", 3, 0);
             break;
         }
-        sprintf(message, "%s|%s|%s", sender, receiver, input);
+        sprintf(message, "%s|%s|%s", user_id, receiver, input);
         send(clientSocket, message, strlen(message), 0);
     }
     count = recv(clientSocket, message, MAX_LENGTH, 0);
@@ -337,7 +367,7 @@ void send_message() {
     printf("%s", message); getchar();
 }
 
-void exit_chat() {
+void quitter_application() {
     if (quit == 0) return;
     puts("Merci d'etre passé, bye 👋 et a la prochaine.");
     strcpy(message, "exit");
@@ -356,19 +386,20 @@ void error(const char *msg) {
     puts(message);
 }
 
-ssize_t read_stdin(const char *prompt) {
+ssize_t lire_une_ligne(const char *prompt) {
     printf("%s", prompt);
     ssize_t count = getline(&input, &inputSize, stdin);
+    // recupérer tout sauf le dernier caracter qui ENTREE
     input[count - 1] = 0;
     return count;
 }
 
-bool is_option_valide(int value) {
-    int arrLen = sizeof OPTION_VALUES / sizeof OPTION_VALUES[0];
+bool verifier_choix_valide(int value) {
+    int arrLen = sizeof OPTIONS_VALIDES / sizeof OPTIONS_VALIDES[0];
     bool isPresent = false;
 
     for (int i = 0; i < arrLen; i++) {
-        if (OPTION_VALUES[i] == value) {
+        if (OPTIONS_VALIDES[i] == value) {
             isPresent = true;
             break;
         }
@@ -376,7 +407,7 @@ bool is_option_valide(int value) {
     return isPresent;
 }
 
-void waiting() {
+void appuyer_touche_pour_continuer() {
     printf("Appuyez pour continuer...");
     getchar();
 }
