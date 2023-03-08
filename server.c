@@ -46,7 +46,7 @@ struct AcceptedSocket acceptedSockets[10];
 
 /**
  * Accept an client/user incoming connection and return connection data
- * @return
+ *
  * @author nfassinou
  */
 struct AcceptedSocket *accepter_un_connexion(int);
@@ -144,7 +144,7 @@ void sauver_donnees_utilisateur(int, char *);
 
 /**
  *
- * @link https://www.tutorialspoint.com/learn_c_by_examples/program_to_find_text_occurence_in_file_in_c.htm
+ * @link
  * @return
  * @author Groupe 7
  */
@@ -176,7 +176,10 @@ void traitement_lecture_messages(int);
 
 void traitement_authentification(int);
 
+
 int main(int argc, char *argv[]) {
+
+
     if (argc < 2) {
         puts("Can not launch server : port number missing.");
         exit(1);
@@ -328,18 +331,37 @@ void traitement_authentification(int _socket) {
     lister_les_sockets();
 }
 
-void traitement_lecture_messages(int _socket) {
+void traitement_lecture_messages(int const _socket) {
     FILE *fd = NULL;
-    strcpy(buffer, "Entrez votre ID : ");
+    struct User *messageUser = malloc(sizeof(struct User));
+    
+    for (int i = 0; i < acceptedSocketsCount; i++) {
+        int sk = acceptedSockets[i].socket_fd;
+        if (sk != _socket) continue;
+         *messageUser =acceptedSockets[i].user ;
+    }
+    
+    char path[1024];
+    strcpy(line, "");
+    snprintf(path, sizeof(path), "%s/%d/%s",CHAT_FOLDER,messageUser->id,UNREAD_MSG);
+    puts(path);
+   
+       fd = fopen(path, "r");
+    puts("ok");
+       if (fd == NULL) sprintf(buffer, "Aucun Message en attente.");
+       else {
+           puts("good");
+           sprintf(buffer, "\nMessage enregistre :\n");
+           while (fgets(line, MAX_LENGTH, fd)) {
+               sprintf(buffer, "%s   %s", buffer, line);
+               puts(line);
+           }
+           puts(buffer);
+       }
+       fclose(fd);
+    puts("end");
     send(_socket, buffer, strlen(buffer), 0);
-    long cnt = recv(_socket, response, MAX_LENGTH, 0);
-    response[cnt] = 0;
-    int user_id = atoi(response);
-    char *file = get_dir(user_id);
-    asprintf(&file, "%s/%s", file, UNREAD_MSG);
-    strcpy(buffer, "Formattage des messages non lus...");
-    send(_socket, buffer, strlen(buffer), 0);
-    puts(file);
+
 }
 
 void traitement_creation_compte(int _socket) {
