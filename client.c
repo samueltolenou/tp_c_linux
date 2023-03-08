@@ -299,11 +299,6 @@ void lire_messages_hors_ligne() {
     send(clientSocket, message, strlen(message), 0);
     long count = recv(clientSocket, message, MAX_LENGTH, 0);
     message[count] = 0;
-    sprintf(message, "%s", user_id);
-    send(clientSocket, message, strlen(message), 0);
-
-    count = recv(clientSocket, message, MAX_LENGTH, 0);
-    message[count] = 0;
     puts(message);
     appuyer_touche_pour_continuer();
 }

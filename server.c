@@ -98,28 +98,27 @@ void creation_dossier(char *);
 
 /**
  * Util function for char replacement
- * @return
+ *
  * @author Groupe 7
  */
 char *str_replace(char *, char, char);
 
 /**
  * Suppress all leading white spaces in a char*
- * @return
+ *
  * @author Groupe 7
  */
 char *trim_white_space(char *);
 
 /**
  * Générer la date et heure au format francais
- * @return
+ *
  * @author Groupe 7
  */
-char *get_date_time();
-
+char *get_date_time(void);
 /**
  * Obtenir le repertoire utilisateur a partir de son ID
- * @return
+ *
  * @author Groupe 7
  */
 char *get_dir(int);
@@ -128,11 +127,11 @@ char *get_dir(int);
  * Listing des sockets actives
  * @author Groupe 7
  */
-void lister_les_sockets();
+void lister_les_sockets(void);
 
 /**
  * Util function to convert a char* to an Integer
- * @return
+ *
  * @author Groupe 7
  */
 int str_to_int(char *);
@@ -152,10 +151,10 @@ bool verifier_existence_utilisateur(char *);
 
 /**
  * Util function to generate a new User ID based on file stored on server side
- * @return
+ *
  * @author Groupe 7
  */
-int generation_id_utilisateur();
+int generation_id_utilisateur(void);
 
 /**
  * Sauver les messages offline dans le fichier UNREAD.TXT de l'utilisateur destinataire
@@ -165,7 +164,7 @@ void sauver_messages_envoyes(char *, char *, char *);
 
 /**
  * Lire le login de l'utilisateur a partir de son ID
- * @return
+ *
  * @author Groupe 7
  */
 char *recuperer_login_utilisateur(char *);
@@ -347,10 +346,9 @@ void traitement_lecture_messages(int const _socket) {
     puts(path);
    
        fd = fopen(path, "r");
-    puts("ok");
+   
        if (fd == NULL) sprintf(buffer, "Aucun Message en attente.");
        else {
-           puts("good");
            sprintf(buffer, "\nMessage enregistre :\n");
            while (fgets(line, MAX_LENGTH, fd)) {
                sprintf(buffer, "%s   %s", buffer, line);
@@ -359,9 +357,9 @@ void traitement_lecture_messages(int const _socket) {
            puts(buffer);
        }
        fclose(fd);
-    puts("end");
     send(_socket, buffer, strlen(buffer), 0);
-
+    remove(path);//supprimer le fichier de message non lu
+    
 }
 
 void traitement_creation_compte(int _socket) {
