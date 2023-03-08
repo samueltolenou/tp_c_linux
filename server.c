@@ -333,18 +333,15 @@ void traitement_authentification(int _socket) {
 void traitement_lecture_messages(int const _socket) {
     FILE *fd = NULL;
     struct User *messageUser = malloc(sizeof(struct User));
-    
     for (int i = 0; i < acceptedSocketsCount; i++) {
         int sk = acceptedSockets[i].socket_fd;
         if (sk != _socket) continue;
          *messageUser =acceptedSockets[i].user ;
     }
-    
     char path[1024];
     strcpy(line, "");
     snprintf(path, sizeof(path), "%s/%d/%s",CHAT_FOLDER,messageUser->id,UNREAD_MSG);
-    puts(path);
-   
+    
        fd = fopen(path, "r");
    
        if (fd == NULL) sprintf(buffer, "Aucun Message en attente.");
